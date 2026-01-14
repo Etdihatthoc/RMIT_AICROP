@@ -1,0 +1,26 @@
+torch>=2.1.0
+git+https://github.com/huggingface/transformers@v4.51.3-Qwen2.5-Omni-preview
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+qwen-omni-utils
+Pillow>=10.1.0
+soundfile>=0.12.0
+numpy>=1.24.0
+
+# FastAPI Backend
+fastapi>=0.108.0
+uvicorn[standard]>=0.25.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+sqlalchemy>=2.0.23
+aiofiles>=23.2.1
+
+# Geo-spatial & Clustering
+scikit-learn>=1.3.2
+geopy>=2.4.1
+
+# Utilities
+python-dotenv>=1.0.0
