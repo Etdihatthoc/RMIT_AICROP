@@ -3,7 +3,6 @@ AI Service - Wrapper around CropDoctor model
 Global singleton instance for the FastAPI app
 """
 
-from crop_doctor import CropDoctor
 from typing import Dict, Optional
 import logging
 from app.config import settings
@@ -27,13 +26,18 @@ class AIService:
             logger.info("Model already loaded, skipping...")
             return
 
+        # Import here to avoid loading torch/CUDA on startup
+        from crop_doctor import CropDoctor
+
         logger.info("Initializing CropDoctor AI...")
         logger.info(f"Model: {settings.model_name}")
+        logger.info(f"Device: {settings.model_device}")
         logger.info(f"4-bit quantization: {settings.use_4bit_quantization}")
         logger.info(f"Audio output: {settings.enable_audio_output}")
 
         self.doctor = CropDoctor(
             model_name=settings.model_name,
+            device=settings.model_device,
             use_4bit=settings.use_4bit_quantization,
             enable_audio_output=settings.enable_audio_output,
             flash_attention=False
@@ -96,7 +100,7 @@ class AIService:
                 question=question,
                 audio=audio_path,
                 context=context_str,
-                temperature=0.7
+                temperature=0.3
             )
 
             logger.info("Diagnosis completed successfully")

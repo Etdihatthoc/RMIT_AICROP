@@ -39,11 +39,11 @@ async def lifespan(app: FastAPI):
     Path(f"{settings.upload_dir}/audio").mkdir(parents=True, exist_ok=True)
     logger.info("Upload directories created")
 
-    # Load AI model
+    # Load AI model on startup
     logger.info("Loading AI model (this may take a few minutes)...")
     from app.services.ai_service import ai_service
     ai_service.load_model()
-    logger.info("✓ AI model loaded successfully!")
+    logger.info("✓ AI model loaded successfully on GPU!")
 
     logger.info(f"Server ready at http://{settings.host}:{settings.port}")
     logger.info(f"API docs available at http://{settings.host}:{settings.port}/docs")

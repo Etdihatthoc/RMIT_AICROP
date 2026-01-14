@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     # AI Model
     model_name: str = Field(default="Qwen/Qwen2.5-Omni-7B", alias="MODEL_NAME")
+    model_device: str = Field(default="auto", alias="MODEL_DEVICE")  # "auto", "cuda:0", "cuda:1", "cuda:2", etc.
     use_4bit_quantization: bool = Field(default=True, alias="USE_4BIT_QUANTIZATION")
     enable_audio_output: bool = Field(default=False, alias="ENABLE_AUDIO_OUTPUT")
 

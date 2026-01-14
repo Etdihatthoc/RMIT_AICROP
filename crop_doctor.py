@@ -112,8 +112,8 @@ class CropDoctor:
         question: Optional[str] = None,
         audio: Optional[str] = None,
         context: Optional[str] = None,
-        temperature: float = 0.7,
-        max_tokens: int = 1024,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
         save_audio_path: Optional[str] = None
     ) -> Union[str, tuple]:
         """
@@ -225,6 +225,14 @@ class CropDoctor:
             clean_up_tokenization_spaces=False
         )[0]
 
+        # Extract only the assistant's response (remove system prompt and user message)
+        # The response format is: system\n[prompt]\nuser\n[message]\nassistant\n[response]
+        if "assistant" in response_text:
+            # Split by "assistant" and take the last part
+            parts = response_text.split("assistant")
+            if len(parts) > 1:
+                response_text = parts[-1].strip()
+        
         logger.info("✓ Diagnosis complete!")
 
         # Handle audio output if enabled
