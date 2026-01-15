@@ -91,7 +91,7 @@ def parse_ai_response(full_response: str) -> dict:
     responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}}
 )
 async def create_diagnosis(
-    image: UploadFile = File(..., description="Crop image (JPG, PNG)"),
+    image: Optional[UploadFile] = File(None, description="Crop image (JPG, PNG) - optional for text/voice chat"),
     question: Optional[str] = Form(None, description="Farmer's question (text)"),
     audio: Optional[UploadFile] = File(None, description="Farmer's question (audio file)"),
     farmer_id: Optional[str] = Form(None),
@@ -105,35 +105,38 @@ async def create_diagnosis(
     db: Session = Depends(get_db)
 ):
     """
-    **UC-01: Cognitive Diagnosis**
+    **UC-01: Cognitive Diagnosis / Chatbot**
 
-    Upload crop image and question (text or audio) to get AI diagnosis
+    Upload crop image and/or question (text or audio) to get AI diagnosis
 
-    - **image**: Required - Image of crop disease
-    - **question**: Optional - Farmer's question as text (if no audio)
+    - **image**: Optional - Image of crop disease
+    - **question**: Optional - Farmer's question as text
     - **audio**: Optional - Farmer's question as audio file
     - **farmer_id**: Optional - Farmer identifier
     - **latitude, longitude**: Optional - GPS coordinates
     - **province, district**: Optional - Location info
     - **temperature, humidity**: Optional - Weather conditions
 
+    At least one of image, question, or audio must be provided.
     Returns detailed diagnosis with disease name, confidence, treatments, and prevention tips.
     """
     try:
-        # Validate input
-        if not question and not audio:
+        # Validate input - at least one must be provided
+        if not question and not audio and not image:
             raise HTTPException(
                 status_code=400,
-                detail="Either 'question' (text) or 'audio' must be provided"
+                detail="At least one of 'image', 'question' (text), or 'audio' must be provided"
             )
 
-        # Save uploaded image
-        logger.info(f"Saving uploaded image: {image.filename}")
-        image_path = await save_uploaded_file(
-            image,
-            f"{settings.upload_dir}/images",
-            allowed_extensions={'.jpg', '.jpeg', '.png', '.webp'}
-        )
+        # Save uploaded image if provided
+        image_path = None
+        if image:
+            logger.info(f"Saving uploaded image: {image.filename}")
+            image_path = await save_uploaded_file(
+                image,
+                f"{settings.upload_dir}/images",
+                allowed_extensions={'.jpg', '.jpeg', '.png', '.webp'}
+            )
 
         # Save audio if provided
         audio_path = None

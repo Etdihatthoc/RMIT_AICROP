@@ -108,7 +108,7 @@ class CropDoctor:
 
     def diagnose(
         self,
-        image: str,
+        image: Optional[str] = None,
         question: Optional[str] = None,
         audio: Optional[str] = None,
         context: Optional[str] = None,
@@ -117,10 +117,10 @@ class CropDoctor:
         save_audio_path: Optional[str] = None
     ) -> Union[str, tuple]:
         """
-        Diagnose crop disease from image and question (text or audio)
+        Diagnose crop disease or answer agricultural questions
 
         Args:
-            image: Path to image file
+            image: Path to image file (optional)
             question: Farmer's question as text (Vietnamese) - optional if audio provided
             audio: Path to audio file (farmer's voice question) - optional
             context: Optional environmental context (location, weather)
@@ -134,6 +134,10 @@ class CropDoctor:
         """
         if self.model is None:
             raise RuntimeError("Model not loaded! Call load_model() first.")
+
+        # Validate - at least one input required
+        if not image and not question and not audio:
+            raise ValueError("At least one of 'image', 'question', or 'audio' must be provided!")
 
         # Build conversation in Qwen2.5-Omni format
         conversation = [
@@ -149,8 +153,9 @@ class CropDoctor:
             }
         ]
 
-        # Add image (always required)
-        conversation[1]["content"].append({"type": "image", "image": image})
+        # Add image if provided
+        if image:
+            conversation[1]["content"].append({"type": "image", "image": image})
 
         # Add audio if provided (Qwen2.5-Omni will process it automatically)
         if audio:
@@ -161,12 +166,15 @@ class CropDoctor:
             user_prompt = "Nông dân hỏi qua giọng nói. "
             if context:
                 user_prompt = f"Thông tin môi trường: {context}\n\n" + user_prompt
-        else:
-            if not question:
-                raise ValueError("Either 'question' (text) or 'audio' must be provided!")
+        elif question:
             user_prompt = question
             if context:
                 user_prompt = f"Thông tin môi trường: {context}\n\nCâu hỏi: {question}"
+        else:
+            # Image only - ask for diagnosis
+            user_prompt = "Hãy chẩn đoán bệnh cây trồng từ hình ảnh này."
+            if context:
+                user_prompt = f"Thông tin môi trường: {context}\n\n{user_prompt}"
 
         # Add text prompt
         conversation[1]["content"].append({"type": "text", "text": user_prompt})

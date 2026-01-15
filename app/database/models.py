@@ -21,8 +21,8 @@ class Diagnosis(Base):
     # Farmer info
     farmer_id = Column(String, nullable=True, index=True)
 
-    # Input files
-    image_path = Column(String, nullable=False)
+    # Input files (at least one of image, audio, or question required)
+    image_path = Column(String, nullable=True)
     audio_path = Column(String, nullable=True)
     question = Column(Text, nullable=True)
 
