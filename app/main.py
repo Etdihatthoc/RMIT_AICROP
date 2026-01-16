@@ -85,6 +85,7 @@ async def root():
         "status": "running",
         "docs": "/docs",
         "endpoints": {
+            "chat": "/api/v1/chat",
             "diagnosis": "/api/v1/diagnose",
             "epidemic_alerts": "/api/v1/epidemic/alerts",
             "expert_login": "/api/v1/auth/expert/login"
@@ -99,8 +100,9 @@ async def health_check():
 
 
 # Import and include routers
-from app.routes import diagnosis, epidemic, expert
+from app.routes import diagnosis, epidemic, expert, chat
 
+app.include_router(chat.router, tags=["Chat"])
 app.include_router(diagnosis.router, prefix="/api/v1", tags=["Diagnosis"])
 app.include_router(epidemic.router, prefix="/api/v1", tags=["Epidemic"])
 app.include_router(expert.router, prefix="/api/v1", tags=["Expert"])

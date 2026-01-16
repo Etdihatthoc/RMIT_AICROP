@@ -110,6 +110,72 @@ class AIService:
             logger.error(f"Error during diagnosis: {e}")
             raise
 
+    async def chat(
+        self,
+        message: str,
+        image_path: Optional[str] = None,
+        audio_path: Optional[str] = None,
+        context: Optional[Dict] = None
+    ) -> str:
+        """
+        Chat with the AI model (conversational mode)
+
+        Args:
+            message: User's text message
+            image_path: Optional image attachment
+            audio_path: Optional audio attachment
+            context: Environmental context (province, temperature, humidity, etc.)
+
+        Returns:
+            AI response text
+        """
+        if not self.model_loaded or self.doctor is None:
+            raise RuntimeError("AI model not loaded! Call load_model() first.")
+
+        # Build context string from dict
+        context_str = None
+        if context:
+            parts = []
+            if context.get('province'):
+                location = context['province']
+                if context.get('district'):
+                    location += f", {context['district']}"
+                parts.append(f"Vị trí: {location}")
+
+            if context.get('temperature'):
+                parts.append(f"Nhiệt độ: {context['temperature']}°C")
+
+            if context.get('humidity'):
+                parts.append(f"Độ ẩm: {context['humidity']}%")
+
+            if context.get('weather_conditions'):
+                parts.append(f"Thời tiết: {context['weather_conditions']}")
+
+            if parts:
+                context_str = ". ".join(parts) + "."
+
+        # Log the chat request
+        logger.info(f"Chat request - Message length: {len(message)}, Image: {image_path is not None}, Audio: {audio_path is not None}")
+
+        try:
+            # Use the same diagnose method but with chat-style prompt
+            # If user sends image + text, it's multimodal chat
+            # If text only, it's pure conversation
+            result = self.doctor.diagnose(
+                image=image_path,
+                question=message,
+                audio=audio_path,
+                context=context_str,
+                temperature=0.7  # Higher temperature for more natural conversation
+            )
+
+            logger.info("Chat response generated successfully")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error during chat: {e}")
+            raise
+
 
 # Global AI service instance
 ai_service = AIService()

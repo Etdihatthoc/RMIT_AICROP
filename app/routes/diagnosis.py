@@ -26,6 +26,51 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def extract_causes_from_response(full_response: str) -> Optional[str]:
+    """Extract disease causes from AI full response"""
+    if not full_response:
+        return None
+
+    # Look for "Nguyên nhân:" section
+    if "Nguyên nhân:" in full_response or "**Nguyên nhân:**" in full_response:
+        lines = full_response.split('\n')
+        causes_lines = []
+        in_causes = False
+
+        for line in lines:
+            if "Nguyên nhân:" in line or "**Nguyên nhân:**" in line:
+                in_causes = True
+                continue
+            if in_causes:
+                # Stop at next section
+                if line.strip().startswith('**') and ':' in line:
+                    break
+                if line.strip() and not line.strip().startswith('#'):
+                    cleaned = line.strip().replace('**', '').replace('- ', '')
+                    if cleaned:
+                        causes_lines.append(cleaned)
+
+        return "\n".join(causes_lines) if causes_lines else None
+
+    return None
+
+
+def convert_list_to_string(items: Optional[list], join_str: str = "\n") -> Optional[str]:
+    """Convert list of items to string for Android compatibility"""
+    if not items:
+        return None
+    if isinstance(items, list):
+        # Handle list of TreatmentInfo objects
+        if items and hasattr(items[0], '__dict__'):
+            return join_str.join([
+                f"{t.name}: {t.dosage or ''} {t.method or ''}".strip()
+                for t in items
+            ])
+        # Handle list of strings
+        return join_str.join(str(item) for item in items)
+    return str(items)
+
+
 def parse_ai_response(full_response: str) -> dict:
     """
     Parse AI response to extract structured data
@@ -214,21 +259,34 @@ async def create_diagnosis(
             db.commit()
             logger.info(f"Diagnosis {diagnosis.id} flagged for expert review (confidence: {parsed['confidence']})")
 
-        # Build response
+        # Build response - UPDATED to include all fields for Android compatibility
         return DiagnosisResponse(
             diagnosis_id=diagnosis.id,
+            farmer_id=diagnosis.farmer_id,
+            image_path=diagnosis.image_path,
+            audio_path=diagnosis.audio_path,
+            question=diagnosis.question,
+            latitude=diagnosis.latitude,
+            longitude=diagnosis.longitude,
+            province=diagnosis.province,
+            district=diagnosis.district,
+            temperature=diagnosis.temperature,
+            humidity=diagnosis.humidity,
+            weather_conditions=diagnosis.weather_conditions,
             disease_detected=parsed["disease_detected"],
-            disease_name_en=None,  # Could add translation
+            disease_name_en=None,
             confidence=parsed["confidence"],
             severity=parsed["severity"],
-            symptoms=parsed["symptoms"],
-            treatments=parsed["treatments"],
-            prevention_tips=parsed["prevention_tips"],
+            symptoms=convert_list_to_string(parsed.get("symptoms")),
+            treatment_suggestions=convert_list_to_string(parsed.get("treatments")),
+            prevention_tips=convert_list_to_string(parsed.get("prevention_tips")),
+            causes=extract_causes_from_response(full_response),
             full_response=full_response,
             status=diagnosis.status,
             expert_reviewed=diagnosis.expert_reviewed,
             expert_comment=diagnosis.expert_comment,
-            created_at=diagnosis.created_at
+            created_at=diagnosis.created_at,
+            updated_at=diagnosis.updated_at
         )
 
     except HTTPException:
@@ -262,18 +320,31 @@ async def get_diagnosis(
 
     return DiagnosisResponse(
         diagnosis_id=diagnosis.id,
+        farmer_id=diagnosis.farmer_id,
+        image_path=diagnosis.image_path,
+        audio_path=diagnosis.audio_path,
+        question=diagnosis.question,
+        latitude=diagnosis.latitude,
+        longitude=diagnosis.longitude,
+        province=diagnosis.province,
+        district=diagnosis.district,
+        temperature=diagnosis.temperature,
+        humidity=diagnosis.humidity,
+        weather_conditions=diagnosis.weather_conditions,
         disease_detected=diagnosis.disease_detected or parsed["disease_detected"],
         disease_name_en=None,
         confidence=diagnosis.confidence or parsed["confidence"],
         severity=diagnosis.severity or parsed["severity"],
-        symptoms=parsed["symptoms"],
-        treatments=parsed["treatments"],
-        prevention_tips=parsed["prevention_tips"],
+        symptoms=convert_list_to_string(parsed.get("symptoms")),
+        treatment_suggestions=convert_list_to_string(parsed.get("treatments")),
+        prevention_tips=convert_list_to_string(parsed.get("prevention_tips")),
+        causes=extract_causes_from_response(diagnosis.full_response),
         full_response=diagnosis.full_response,
         status=diagnosis.status,
         expert_reviewed=diagnosis.expert_reviewed,
         expert_comment=diagnosis.expert_comment,
-        created_at=diagnosis.created_at
+        created_at=diagnosis.created_at,
+        updated_at=diagnosis.updated_at
     )
 
 
@@ -307,25 +378,38 @@ async def get_diagnosis_history(
     # Get paginated results
     diagnoses = query.order_by(Diagnosis.created_at.desc()).limit(min(limit, 100)).offset(offset).all()
 
-    # Convert to response models
+    # Convert to response models - UPDATED for Android compatibility
     diagnosis_responses = []
     for diag in diagnoses:
         parsed = parse_ai_response(diag.full_response)
         diagnosis_responses.append(
             DiagnosisResponse(
                 diagnosis_id=diag.id,
+                farmer_id=diag.farmer_id,
+                image_path=diag.image_path,
+                audio_path=diag.audio_path,
+                question=diag.question,
+                latitude=diag.latitude,
+                longitude=diag.longitude,
+                province=diag.province,
+                district=diag.district,
+                temperature=diag.temperature,
+                humidity=diag.humidity,
+                weather_conditions=diag.weather_conditions,
                 disease_detected=diag.disease_detected or parsed["disease_detected"],
                 disease_name_en=None,
                 confidence=diag.confidence or parsed["confidence"],
                 severity=diag.severity or parsed["severity"],
-                symptoms=parsed["symptoms"],
-                treatments=parsed["treatments"],
-                prevention_tips=parsed["prevention_tips"],
+                symptoms=convert_list_to_string(parsed.get("symptoms")),
+                treatment_suggestions=convert_list_to_string(parsed.get("treatments")),
+                prevention_tips=convert_list_to_string(parsed.get("prevention_tips")),
+                causes=extract_causes_from_response(diag.full_response),
                 full_response=diag.full_response,
                 status=diag.status,
                 expert_reviewed=diag.expert_reviewed,
                 expert_comment=diag.expert_comment,
-                created_at=diag.created_at
+                created_at=diag.created_at,
+                updated_at=diag.updated_at
             )
         )
 

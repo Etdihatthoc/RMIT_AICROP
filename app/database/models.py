@@ -111,3 +111,43 @@ class EpidemicAlert(Base):
         Index('idx_alert_location', 'province', 'district'),
         Index('idx_alert_disease', 'disease_name'),
     )
+
+
+class ChatHistory(Base):
+    """Chat history table for conversational AI"""
+    __tablename__ = "chat_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # User info
+    farmer_id = Column(String, nullable=True, index=True)
+    session_id = Column(String, nullable=True, index=True)  # Group related messages
+
+    # Message content
+    role = Column(String, nullable=False)  # "user" or "assistant"
+    message = Column(Text, nullable=False)
+
+    # Input files (for multimodal chat)
+    image_path = Column(String, nullable=True)
+    audio_path = Column(String, nullable=True)
+
+    # Location context
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    province = Column(String, nullable=True)
+
+    # Weather context
+    temperature = Column(Float, nullable=True)
+    humidity = Column(Float, nullable=True)
+
+    # If this message triggered a diagnosis
+    diagnosis_id = Column(Integer, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Indexes
+    __table_args__ = (
+        Index('idx_chat_session', 'session_id', 'created_at'),
+        Index('idx_chat_farmer', 'farmer_id', 'created_at'),
+    )
